@@ -22,6 +22,7 @@ int main(int argc, char* argv[])
     struct sockaddr_in serv_addr; /* Server address */
 
     char buffer[buffsize];
+    memset(buffer, 0, sizeof(buffer));
     int lenrem;
 
     if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) 
@@ -58,20 +59,16 @@ int main(int argc, char* argv[])
         in[lenrem-1] = '\0';
 
         // send the input to server
-        while(lenrem>=buffsize)
+        while(lenrem>buffsize)
         {   
             char *temp;
-            printf("HERE1\n");
             temp = (char *)malloc(buffsize * sizeof(char));
-            printf("HERE1\n");
-            strncpy(temp, in, buffsize-1);
-            temp[buffsize-1] = '\0';
-            printf("%s\n", temp);
-            printf("HERE1\n");
+            memset(temp, 0, sizeof(temp));
+            strncpy(temp, in, buffsize);
             send(sockfd, temp, buffsize, 0);
-            printf("HERE1\n");
-            lenrem = lenrem - buffsize + 1;
-            in = in + buffsize - 1;
+            free(temp);
+            lenrem = lenrem - buffsize;
+            in = in + buffsize;
         }
         send(sockfd, in, lenrem, 0);
 
@@ -79,13 +76,9 @@ int main(int argc, char* argv[])
         recv(sockfd, buffer, buffsize, 0);
 
         // print the result
-        if(strcmp(buffer, "Invalid Expression") == 0)
-            printf("Given expression is invalid\n\n");
-        else
-            printf("Given expression evaluates to: %s\n\n", buffer);
+        printf("Given expression evaluates to: %s\n\n", buffer);
         
     }
-
     printf("Exiting...\n");
 
     return 0;
