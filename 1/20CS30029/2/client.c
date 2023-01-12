@@ -12,7 +12,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#define buffsize 256
+#define buffsize 20
 
             /* THE CLIENT PROCESS */
 
@@ -22,11 +22,7 @@ int main(int argc, char* argv[])
     struct sockaddr_in serv_addr; /* Server address */
 
     char buffer[buffsize];
-    char *in;
-    size_t insize = 32;
     int lenrem;
-    in = (char *)malloc(insize * sizeof(char));
-
 
     if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) 
     {
@@ -51,6 +47,8 @@ int main(int argc, char* argv[])
 
         // Input fetching using getline
         int lenrem;
+        char *in = NULL;
+        size_t insize = 0;
         lenrem = getline(&in, &insize, stdin); 
         if(strlen(in)==3)
             if(in[0]=='-' && in[1]=='1' && in[2]=='\n')
@@ -63,11 +61,15 @@ int main(int argc, char* argv[])
         while(lenrem>=buffsize)
         {   
             char *temp;
+            printf("HERE1\n");
             temp = (char *)malloc(buffsize * sizeof(char));
+            printf("HERE1\n");
             strncpy(temp, in, buffsize-1);
             temp[buffsize-1] = '\0';
+            printf("%s\n", temp);
+            printf("HERE1\n");
             send(sockfd, temp, buffsize, 0);
-            free(temp);
+            printf("HERE1\n");
             lenrem = lenrem - buffsize + 1;
             in = in + buffsize - 1;
         }

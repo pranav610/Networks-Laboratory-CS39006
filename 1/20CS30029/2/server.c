@@ -14,7 +14,7 @@
 #include <arpa/inet.h>
 #include <time.h>
 #include <math.h>
-#define buffsize 256
+#define buffsize 20
 
 /* THE SERVER PROCESS */
 
@@ -35,7 +35,7 @@ int isDigit(char a)
 // Function to evaluate the expression
 double evaluate(char *in)
 {   
-    // printf("Expression received: %s\n", in);
+    printf("Expression received: %s\n", in);
     int exprsize = strlen(in);
 
     // white space removal 
@@ -44,11 +44,13 @@ double evaluate(char *in)
     {   
         if (in[j] == ' ')
             continue;
-        if(!isDigit(in[j]) && !isOp(in[j]) && in[j]!='(' && in[j]!=')' && in[j]!='.')
-            return INFINITY;
+        // if(!isDigit(in[j]) && !isOp(in[j]) && in[j]!='(' && in[j]!=')' && in[j]!='.')
+        //     return INFINITY;
         in[fill++] = in[j];
     }
+    printf("Expression after white space removal: %s\n", in);
     in[fill] = '\0';
+    exprsize = fill;
 
     double ans = 0;
     int itr = 0;
@@ -57,9 +59,8 @@ double evaluate(char *in)
     char glbop = '+';
     // char invalid = 0;
 
-    // checking for sign of 1st number
-    if (isOp(in[itr]))
-        return INFINITY;
+    // if (isOp(in[itr]))
+    //     return INFINITY;
 
     for (; itr < exprsize; itr++)
     {
@@ -68,13 +69,13 @@ double evaluate(char *in)
             char op;
             double num;
 
-            if (start == itr)
-                return INFINITY;
+            // if (start == itr)
+            //     return INFINITY;
             
             if(in[start]=='(')
             {
                 for(itr = start+1; itr<exprsize; itr++) if(in[itr]==')') break;
-                if(itr==exprsize) return INFINITY;
+                // if(itr==exprsize) return INFINITY;
                 in[itr] = '\0';
                 num = evaluate(in+1+start);
                 in[itr] = ')';
@@ -102,10 +103,7 @@ double evaluate(char *in)
                     {
                         if (glbop == '/')
                         {
-                            if (num == 0)
-                                return INFINITY;
-                            else
-                                ans /= num;
+                            ans /= num;
                         }
                     }
                 }
@@ -117,15 +115,15 @@ double evaluate(char *in)
 
     if (itr == exprsize)
     {
-        if (start == itr)
-            return INFINITY;
+        // if (start == itr)
+        //     return INFINITY;
         
         double num;
 
         if(in[start]=='(')
         {
             for(itr = start + 1; itr<exprsize; itr++) if(in[itr]==')') break;
-            if(itr==exprsize) return INFINITY;
+            // if(itr==exprsize) return INFINITY;
             in[itr] = '\0';
             num = evaluate(in+1+start);
             in[itr] = ')';
@@ -147,9 +145,9 @@ double evaluate(char *in)
                 {
                     if (glbop == '/')
                     {
-                        if (num == 0)
-                            return INFINITY;
-                        else
+                        // if (num == 0)
+                        //     return INFINITY;
+                        // else
                             ans /= num;
                     }
                 }
@@ -183,16 +181,20 @@ int main()
         exit(0);
     }
 
+    printf("Server is running...\n");
+
     listen(sockfd, 10);
 
     while (1)
-    {
+    {   
+        // Accept a connection
         newsockfd = accept(sockfd, (struct sockaddr *)&cli_addr, &clilen);
         if (newsockfd < 0)
         {
-            perror("Accept error\n");
+            perror("Accept Error\n");
             exit(0);
         }
+        printf("Client Connected\n");
 
         char *expr;
         expr = (char *)malloc(buffsize * sizeof(char));
@@ -213,35 +215,32 @@ int main()
             int oldsize = strlen(expr) + 1;
             int newsize = oldsize + strlen(buffer);
 
+            printf("oldsize: %d, newsize: %d\n", oldsize, newsize);
+
             if (newsize != oldsize)
             {
-                char *temp;
-                temp = (char *)malloc(oldsize * sizeof(char));
-                strncpy(temp, expr, oldsize);
-
                 expr = (char *)realloc(expr, newsize * sizeof(char));
-                strcpy(expr, temp);
-                free(temp);
                 char *ptr = expr + oldsize - 1;
                 strcpy(ptr, buffer);
             }
 
             // data is sent from client without new line at the end
-            if (strlen(buffer) < 256)
+            if (strlen(buffer) < buffsize - 1)
             {
                 double ans = evaluate(expr);
-                if (ans == INFINITY)
-                {
-                    strcpy(buffer, "Invalid Expression");
-                    send(newsockfd, buffer, strlen(buffer) + 1, 0);
-                }
-                else
-                {
+                // if (ans == INFINITY)
+                // {
+                //     strcpy(buffer, "Invalid Expression");
+                //     send(newsockfd, buffer, strlen(buffer) + 1, 0);
+                // }
+                // else
+                // {
                     gcvt(ans, 10, buffer);
                     send(newsockfd, buffer, strlen(buffer) + 1, 0);
-                }
+                // }
                 expr = (char *)realloc(expr, buffsize * sizeof(char));
                 bzero(expr, buffsize);
+                expr[0] = '\0';
             }
         }
     }
