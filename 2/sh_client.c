@@ -71,8 +71,6 @@ int main(int argc, char *argv[])
     memset(buff, 0, sizeof(buff));
     recv(sockfd, buff, BUFF_MAX, 0);
 
-    printf("User verification from server: %s\n", buff);
-
     if(strcmp(buff, "NOT-FOUND")==0)
     {
         printf("Invalid username\n");
@@ -81,8 +79,9 @@ int main(int argc, char *argv[])
     }
     else
     {   
+        printf("Login Successful\n");
         while(1)
-        {
+        {   
             printf("%s:~$ ", username);
             memset(buff, 0, sizeof(buff));
             int count = 0, chunks = 0;
@@ -100,7 +99,6 @@ int main(int argc, char *argv[])
                 a = getchar();
             } 
             buff[count++] = '\0';
-            printf("%s, %d\n", buff, count);
             if(chunks==0 && strcmp(buff, "exit")==0) 
                 break;
             send(sockfd, buff, count, 0);
@@ -112,7 +110,7 @@ int main(int argc, char *argv[])
                 continue;
             while(buff[n-1]!='\0')
             {
-                printf("%s", buff);
+                printf("%.*s", BUFF_MAX, buff);
                 memset(buff, 0, sizeof(buff));
                 n = recv(sockfd, buff, BUFF_MAX, 0);
             }
@@ -126,7 +124,13 @@ int main(int argc, char *argv[])
                 printf("Error in running command\n");
                 continue;
             }
-            printf("%s\n", buff);
+            if(strlen(buff))
+            {
+                if(buff[strlen(buff)-1]=='\n')
+                    printf("%s", buff);
+                else
+                    printf("%s\n", buff);
+            }                
         }
     }    
 }

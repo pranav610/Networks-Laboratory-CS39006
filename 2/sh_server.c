@@ -19,6 +19,7 @@
 
 
             /* The Server Process*/
+
 int isValid(char *username)
 {
     FILE * fp;
@@ -87,20 +88,16 @@ int main()
 
             char username[USER_MAX];
             recv(newsockfd, username, USER_MAX, 0);
-            printf("Username: %s\n", username);
 
             if(isValid(username))
-                {send(newsockfd, "FOUND", 6, 0); printf("FOUND\n");}
+                send(newsockfd, "FOUND", 6, 0);
             else
             {   
-                printf("NOT-FOUND\n");
                 printf("Client Disconnected\n");
                 send(newsockfd, "NOT-FOUND", 10, 0);
                 close(newsockfd);
                 exit(EXIT_SUCCESS);
             }
-
-            printf("HERE1\n");
                 
             char *cmd;
             cmd = (char *)malloc(BUFF_MAX * sizeof(char));
@@ -115,19 +112,8 @@ int main()
                 memset(buffer, 0, sizeof(buffer));
                 int ret = recv(newsockfd, buffer, BUFF_MAX, 0);
 
-                printf("raw command: %s, lenght read: %d\n", buffer, ret);
-
                 if (ret == 0)
                     break;
-
-                if(buffer[ret-1]!='\0')
-                    printf("Kuch toh gadbad hai\n");
-                else 
-                    printf("Sab sahi hai\n");
-                
-                printf("WTF!!\n");
-                
-                printf("strlen: %zu\n", strlen(cmd));
 
                 int newsize, oldsize = strlen(cmd) + 1;
 
@@ -135,8 +121,6 @@ int main()
                     newsize = oldsize + ret;
                 else
                     newsize = oldsize + strlen(buffer);
-
-                printf("%d=new, %d=old\n", newsize, oldsize);
 
                 if (newsize != oldsize)
                 {
@@ -148,7 +132,6 @@ int main()
                 if (buffer[ret - 1] == '\0')
                 {
                     // send command
-                    printf("Command recieved: %s\n",cmd);
                     int cmdsz = strlen(cmd);
                     int itr = 0;
                     for(; itr<cmdsz; itr++)
@@ -168,14 +151,11 @@ int main()
                             continue;
                         }
                     }
-                    printf("1st 4 characters of command: %s\n", cmdd);
 
                     if(strcmp(cmdd, "cd")==0)
                     {   
                         for(; itr<cmdsz; itr++)
                             if(cmd[itr]!=' ') break;
-                        printf("cd\n");
-                        printf("%s\n", cmd+itr);
                         int val = chdir(cmd+itr);
                         if(val < 0)
                         {
@@ -191,8 +171,6 @@ int main()
                     {   
                         for(; itr<cmdsz; itr++)
                             if(cmd[itr]!=' ') break;
-                        printf("dir\n");
-                        printf("%s\n", cmd+itr);
                         DIR *dir = opendir(cmd+itr);
                         if(!dir)
                         {
@@ -202,31 +180,36 @@ int main()
                             continue;
                         }
                         struct dirent * workingdir = readdir(dir);
+                        int count = 0;
+                        memset(buffer, 0 , sizeof(buffer));
                         while(workingdir)
-                        {
-                            int count = 0, itr = 0;
-                            memset(buffer, 0 , sizeof(buffer));
-                            printf("%s\n", workingdir->d_name);
-                            for(; itr<256; itr++)
+                        {   
+                            for(int itr = 0; itr<256; itr++)
                             {   
-                                if(workingdir->d_name[itr]=='\0') break;
-                                buffer[count++] = workingdir->d_name[itr];
+                                if(workingdir->d_name[itr]=='\0') 
+                                    buffer[count++] = '\n';
+                                else 
+                                    buffer[count++] = workingdir->d_name[itr];
+
                                 if(count==BUFF_MAX)
                                 {
                                     send(newsockfd, buffer, BUFF_MAX, 0);
                                     count = 0;
                                     memset(buffer, 0, sizeof(char));
                                 }
-                            }
-                            buffer[count++] = '\0';
-                            send(newsockfd, buffer, count, 0);
+                                if(workingdir->d_name[itr]=='\0') break;
+                            }                            
                             workingdir = readdir(dir);
                         }
+                        if(count)
+                            buffer[count - 1] = '\0';
+                        else
+                            buffer[count++] = '\0';
+                        send(newsockfd, buffer, count, 0);
                         closedir(dir);
                     }
                     if(strcmp(cmdd, "pwd")==0)
                     {   
-                        printf("pwd\n");
                         char pwd[256];
                         if (getcwd(pwd, sizeof(pwd)) == NULL)
                         {
@@ -235,7 +218,6 @@ int main()
                             memset(cmd, 0, sizeof(cmd));
                             continue;
                         }
-                        printf("%s\n", pwd);
                         int count = 0, itr = 0;
                         memset(buffer, 0 , sizeof(buffer));
                         for(; itr<256; itr++)
