@@ -13,7 +13,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #define BUFF_MAX 50
-#define USER_MAX 25
+#define USER_MAX 26
 
             /*The Client Process*/
 
@@ -34,7 +34,7 @@ int main(int argc, char *argv[])
     }
 
     servaddr.sin_family = AF_INET;
-    if(argc) inet_aton(argv[0], &servaddr.sin_addr);
+    if(argc==2) inet_aton(argv[1], &servaddr.sin_addr);
     else inet_aton("127.0.0.1", &servaddr.sin_addr);
     servaddr.sin_port = htons(20000);
 
@@ -124,13 +124,7 @@ int main(int argc, char *argv[])
                 printf("Error in running command\n");
                 continue;
             }
-            if(strlen(buff))
-            {
-                if(buff[strlen(buff)-1]=='\n')
-                    printf("%s", buff);
-                else
-                    printf("%s\n", buff);
-            }                
+            printf("%s\n", buff);            
         }
     }    
 }
