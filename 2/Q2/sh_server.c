@@ -125,7 +125,7 @@ int main()
             // message sent by the client
 
             while (1)
-            {
+            {   
                 memset(buffer, 0, sizeof(buffer));
                 int ret = recv(newsockfd, buffer, BUFF_MAX, 0);
 
@@ -254,9 +254,13 @@ int main()
                         closedir(dir);
                     }
                     else if (strcmp(cmdd, "pwd") == 0)
-                    {
+                    {   
+                        int invalid = 0;
+                        for(; itr<cmdsz; itr++)
+                            if(cmd[itr] != ' ')
+                                invalid = 1;
                         char *pwd = getcwd(NULL, 0);
-                        if (pwd == NULL)
+                        if (pwd == NULL || invalid)
                         {
                             send(newsockfd, "####", 5, 0);
                             cmd = (char *)realloc(cmd, BUFF_MAX * sizeof(char));

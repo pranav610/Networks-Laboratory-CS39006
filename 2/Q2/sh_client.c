@@ -47,11 +47,6 @@ int main(int argc, char *argv[])
     recv(sockfd, buff, BUFF_MAX, 0);
     printf("%s ", buff);
 
-    // char *username = (char *) malloc(USER_MAX * sizeof(char));
-    // size_t len = USER_MAX;
-    // int n = getline(&username, &len, stdin);
-    // username[n-1] = '\0'; // replace newline read by getline with null character
-
     char username[USER_MAX];
     memset(username, 0, sizeof(username));
     int count = 0;
