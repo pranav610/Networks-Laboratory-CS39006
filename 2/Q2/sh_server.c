@@ -19,6 +19,32 @@
 
             /* The Server Process*/
 
+void myrecv(int sockfd, char *buff)
+{   
+    char temp[BUFF_MAX];
+    memset(temp, 0, sizeof(temp));
+    memset(buff, 0, sizeof(buff));
+
+    int n = recv(sockfd, temp, BUFF_MAX, 0);
+    if(n==0)
+    {
+        printf("Server closed connection\n");
+        exit(EXIT_SUCCESS);
+    }
+    strcpy(buff, temp);
+    while(buff[n-1]!='\0')
+    {
+        strcat(buff, temp);
+        memset(temp, 0, sizeof(temp));
+        n = recv(sockfd, temp, BUFF_MAX, 0);
+        if(n==0)
+        {
+            printf("Server closed connection\n");
+            exit(EXIT_SUCCESS);
+        }
+    }
+}
+
 // function to check if username is valid
 int isValid(char *username)
 {   
@@ -99,7 +125,7 @@ int main()
 
             // receive username from client
             char username[USER_MAX];
-            recv(newsockfd, username, USER_MAX, 0);
+            myrecv(newsockfd, username);
 
             // check if username is valid
             if (isValid(username))

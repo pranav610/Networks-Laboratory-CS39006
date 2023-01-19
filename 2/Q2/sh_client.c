@@ -17,6 +17,32 @@
 
             /*The Client Process*/
 
+void myrecv(int sockfd, char *buff)
+{   
+    char temp[BUFF_MAX];
+    memset(temp, 0, sizeof(temp));
+    memset(buff, 0, sizeof(buff));
+
+    int n = recv(sockfd, temp, BUFF_MAX, 0);
+    if(n==0)
+    {
+        printf("Server closed connection\n");
+        exit(EXIT_SUCCESS);
+    }
+    strcpy(buff, temp);
+    while(buff[n-1]!='\0')
+    {
+        strcat(buff, temp);
+        memset(temp, 0, sizeof(temp));
+        n = recv(sockfd, temp, BUFF_MAX, 0);
+        if(n==0)
+        {
+            printf("Server closed connection\n");
+            exit(EXIT_SUCCESS);
+        }
+    }
+}
+
 int main(int argc, char *argv[])
 {
     int sockfd;
@@ -44,7 +70,7 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
-    recv(sockfd, buff, BUFF_MAX, 0);
+    myrecv(sockfd, buff);
     printf("%s ", buff);
 
     char username[USER_MAX];
@@ -63,8 +89,7 @@ int main(int argc, char *argv[])
 
     // after checking username against valid usernames the server's respond will be recieved 
     // using following command
-    memset(buff, 0, sizeof(buff));
-    recv(sockfd, buff, BUFF_MAX, 0);
+    myrecv(sockfd, buff);
 
     if(strcmp(buff, "NOT-FOUND")==0)
     {
@@ -101,6 +126,11 @@ int main(int argc, char *argv[])
             // recieve result from the server
             memset(buff, 0, sizeof(buff));
             int n = recv(sockfd, buff, BUFF_MAX, 0);
+            if(n==0)
+            {
+                printf("Server closed connection\n");
+                break;
+            }
             if(buff[0]=='\0')
                 continue;
             while(buff[n-1]!='\0')
@@ -108,6 +138,13 @@ int main(int argc, char *argv[])
                 printf("%.*s", BUFF_MAX, buff);
                 memset(buff, 0, sizeof(buff));
                 n = recv(sockfd, buff, BUFF_MAX, 0);
+                if(n==0)
+                    break;
+            }
+            if(n==0)
+            {
+                printf("Server closed connection\n");
+                break;
             }
             if(strcmp(buff, "$$$$")==0)
             {
