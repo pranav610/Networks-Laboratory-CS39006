@@ -21,7 +21,6 @@ void myrecv(int sockfd, char *buff)
 {   
     char temp[BUFF_MAX];
     memset(temp, 0, sizeof(temp));
-    memset(buff, 0, sizeof(buff));
 
     int n = recv(sockfd, temp, BUFF_MAX, 0);
     if(n==0)
@@ -89,6 +88,7 @@ int main(int argc, char *argv[])
 
     // after checking username against valid usernames the server's respond will be recieved 
     // using following command
+    memset(buff, 0, sizeof(buff));
     myrecv(sockfd, buff);
 
     if(strcmp(buff, "NOT-FOUND")==0)
@@ -135,7 +135,7 @@ int main(int argc, char *argv[])
                 continue;
             while(buff[n-1]!='\0')
             {
-                printf("%.*s", BUFF_MAX, buff);
+                printf("%.*s", n, buff);
                 memset(buff, 0, sizeof(buff));
                 n = recv(sockfd, buff, BUFF_MAX, 0);
                 if(n==0)

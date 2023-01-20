@@ -23,7 +23,6 @@ void myrecv(int sockfd, char *buff)
 {   
     char temp[BUFF_MAX];
     memset(temp, 0, sizeof(temp));
-    memset(buff, 0, sizeof(buff));
 
     int n = recv(sockfd, temp, BUFF_MAX, 0);
     if(n==0)
@@ -125,6 +124,7 @@ int main()
 
             // receive username from client
             char username[USER_MAX];
+            memset(username, 0, sizeof(username));
             myrecv(newsockfd, username);
 
             // check if username is valid
@@ -258,7 +258,7 @@ int main()
                             {   
                                 // add new line after each directory
                                 if (workingdir->d_name[itr] == '\0')
-                                    buffer[count++] = '\t';
+                                    buffer[count++] = '\n';
                                 else
                                     buffer[count++] = workingdir->d_name[itr];
 
