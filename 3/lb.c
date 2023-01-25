@@ -58,18 +58,6 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
-    // create socket for server 1
-    if ((sockfds1 = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-        perror("Cannot create socket\n");
-        exit(EXIT_FAILURE);
-    }
-
-    // create socket for server 2
-    if ((sockfds2 = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-        perror("Cannot create socket\n");
-        exit(EXIT_FAILURE);
-    }
-
     // set up server address for load balancer
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_addr.s_addr = INADDR_ANY;
@@ -125,6 +113,18 @@ int main(int argc, char *argv[])
         // ret = 0 means timeout
         if(ret == 0)
         {   
+            // create socket for server 1
+            if ((sockfds1 = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+                perror("Cannot create socket\n");
+                exit(EXIT_FAILURE);
+            }
+
+            // create socket for server 2
+            if ((sockfds2 = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+                perror("Cannot create socket\n");
+                exit(EXIT_FAILURE);
+            }
+
             // update load value of server 1
             memset(buffer, 0, BUFF_MAX);
             sprintf(buffer, "Send Load");
@@ -196,6 +196,11 @@ int main(int argc, char *argv[])
                     close(sockfd);
                     memset(buffer, 0, BUFF_MAX);
                     if(load1 < load2){
+                        // create socket for server 1
+                        if ((sockfds1 = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+                            perror("Cannot create socket\n");
+                            exit(EXIT_FAILURE);
+                        }
                         // request to server 1 for time
                         memset(buffer, 0, BUFF_MAX);
                         sprintf(buffer, "Send Time");
@@ -222,6 +227,11 @@ int main(int argc, char *argv[])
                         send(newsockfd, buffer, strlen(buffer) + 1, 0);
                         close(sockfds1);
                     }else{
+                        // create socket for server 2
+                        if ((sockfds2 = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+                            perror("Cannot create socket\n");
+                            exit(EXIT_FAILURE);
+                        }
                         // request to server 2 for time
                         memset(buffer, 0, BUFF_MAX);
                         sprintf(buffer, "Send Time");
