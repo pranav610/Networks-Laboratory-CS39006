@@ -100,6 +100,7 @@ int main(int argc, char *argv[])
     else
     {   
         printf("Login Successful\n");
+        char *shellout = (char *)malloc(BUFF_MAX*sizeof(char));
         while(1)
         {   
             printf("%s:~$ ", username);
@@ -124,6 +125,7 @@ int main(int argc, char *argv[])
             send(sockfd, buff, count, 0);
 
             // recieve result from the server
+            memset(shellout, 0, BUFF_MAX);
             memset(buff, 0, sizeof(buff));
             int n = recv(sockfd, buff, BUFF_MAX, 0);
             if(n==0)
@@ -133,9 +135,17 @@ int main(int argc, char *argv[])
             }
             if(buff[0]=='\0')
                 continue;
+            
+            int newsize, oldsize;
+
             while(buff[n-1]!='\0')
-            {
-                printf("%.*s", n, buff);
+            {   
+                oldsize = strlen(shellout) + 1;
+                newsize = oldsize + n;
+            
+                shellout = (char *)realloc(shellout, newsize*sizeof(char));
+                strncat(shellout, buff, n);
+                
                 memset(buff, 0, sizeof(buff));
                 n = recv(sockfd, buff, BUFF_MAX, 0);
                 if(n==0)
@@ -146,17 +156,25 @@ int main(int argc, char *argv[])
                 printf("Server closed connection\n");
                 break;
             }
-            if(strcmp(buff, "$$$$")==0)
+            oldsize = strlen(shellout) + 1;
+            newsize = oldsize + strlen(buff);
+            shellout = (char *)realloc(shellout, newsize*sizeof(char));
+            strcat(shellout, buff);
+
+            if(strcmp(shellout, "$$$$")==0)
             {
                 printf("Invalid command\n");
+                shellout = (char *)realloc(shellout, BUFF_MAX*sizeof(char)); 
                 continue;
             }
-            if(strcmp(buff, "####")==0)
+            if(strcmp(shellout, "####")==0)
             {
                 printf("Error in running command\n");
+                shellout = (char *)realloc(shellout, BUFF_MAX*sizeof(char)); 
                 continue;
             }
-            printf("%s\n", buff);            
+            printf("%s\n", shellout);
+            shellout = (char *)realloc(shellout, BUFF_MAX*sizeof(char));            
         }
     }    
 }
