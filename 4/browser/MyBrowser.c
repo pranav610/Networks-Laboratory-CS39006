@@ -267,18 +267,18 @@ int main()
                         error_in_response = 1;
                     }
                 }
-                // else if (strstr(line.str, "Expires: "))
-                // {
-                //     struct tm TM;
-                //     char *date = line.str + strlen("Expires: ");
-                //     strptime(date, "%a, %d %b %Y %H:%M:%S %Z", &TM);
-                //     time_t t = mktime(&TM);
-                //     if (t < time(NULL))
-                //     {
-                //         printf("File expired\n");
-                //         error_in_response = 1;
-                //     }
-                // }
+                else if (strstr(line.str, "Expires: "))
+                {
+                    struct tm TM;
+                    char *date = line.str + strlen("Expires: ");
+                    strptime(date, "%a, %d %b %Y %H:%M:%S %Z", &TM);
+                    time_t t = mktime(&TM);
+                    if (t < time(NULL))
+                    {
+                        printf("File expired\n");
+                        error_in_response = 1;
+                    }
+                }
                 else if (strstr(line.str, "Content-Length: "))
                 {
                     char *len = line.str + strlen("Content-Length: ");
@@ -296,6 +296,9 @@ int main()
                     strptime(date, "%a, %d %b %Y %H:%M:%S %Z", &TM);
                     time_t t = mktime(&TM);
                     time_t last_modified = mktime(&tm);
+                    printf("Last modified: %s", asctime(&TM));
+                    printf("Current time: %s", asctime(&tm));
+                    printf("Time difference: %ld\n", t - last_modified);
                     if (t < last_modified)
                     {
                         printf("File has been modified much earlier\n");
@@ -315,9 +318,12 @@ int main()
             }
 
             // Get the file
-            concat_string(&path, ".", 1);
-            concat_string(&path, extension, strlen(extension));
-            int fd = open(path.str + 1, O_WRONLY | O_CREAT | O_TRUNC, 0666);
+            struct string filename = init_string();
+            concat_string(&filename, path.str + 1, strlen(path.str+1));
+            concat_string(&filename, ".", 1);
+            concat_string(&filename, extension, strlen(extension));
+            deinit_string(path);
+            int fd = open(filename.str, O_WRONLY | O_CREAT | O_TRUNC, 0666);
             if (fd < 0)
             {
                 perror("Error in opening file\n");
@@ -336,19 +342,19 @@ int main()
             {
                 if (!strcmp(content_type.str, "text/html"))
                 {
-                    execlp("firefox", "firefox", path.str + 1, NULL);
+                    execlp("firefox", "firefox", filename.str, NULL);
                 }
                 else if (!strcmp(content_type.str, "application/pdf"))
                 {
-                    execlp("acroread", "acroread", path.str + 1, NULL);
+                    execlp("acroread", "acroread", filename.str, NULL);
                 }
                 else if (!strcmp(content_type.str, "image/jpeg"))
                 {
-                    execlp("eog", "eog", path.str + 1, NULL);
+                    execlp("eog", "eog", filename.str, NULL);
                 }
                 else if (!strcmp(content_type.str, "text/*"))
                 {
-                    execlp("gedit", "gedit", path.str + 1, NULL);
+                    execlp("gedit", "gedit", filename.str, NULL);
                 }
                 else
                 {
@@ -359,8 +365,8 @@ int main()
             else
             {
                 wait(NULL);
+                deinit_string(filename);
                 deinit_string(content_type);
-                deinit_string(path);
             }
         }
         else if (!strcmp(cmd, "PUT"))
@@ -554,7 +560,7 @@ int main()
                 close(sockfd);
                 continue;
             }
-            
+
             deinit_string(remaining);
         }
         else if (!strcmp(cmd, "QUIT"))

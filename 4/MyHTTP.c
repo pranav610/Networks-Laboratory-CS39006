@@ -82,12 +82,12 @@ int main(int argc, char *argv[])
             msg_size = 0;
             memset(buffer, 0, BUFF_MAX);
             int n = recv(newsockfd, buffer, BUFF_MAX, 0);
-            // printf("n: %d\n", n);
             if (n == 0)
             {
                 printf("Client closed connection1\n");
                 exit(EXIT_SUCCESS);
             }
+            int method_header_end = 0;
             int newsize, oldsize;
             // keep receiving data until we get a blank line
             while (1)
@@ -96,7 +96,6 @@ int main(int argc, char *argv[])
                 newsize = oldsize + n;
 
                 msg = (char *)realloc(msg, newsize);
-                // strncat(msg, buffer, n);
                 for(int i=0; i<n; i++)
                     msg[oldsize+i] = buffer[i];
                 msg_size = newsize;
@@ -105,12 +104,13 @@ int main(int argc, char *argv[])
                 for(int i=0; i<n-3; i++)
                 {
                     if(buffer[i]=='\r' && buffer[i+1]=='\n' && buffer[i+2]=='\r' && buffer[i+3]=='\n')
-                    {
-                        printf("Breaked here\n");
+                    {   
+                        method_header_end = i+4;
                         flag = 1;
                         break;
                     }
                 }
+
                 if(flag)
                     break;
                 memset(buffer, 0, sizeof(buffer));
@@ -123,17 +123,13 @@ int main(int argc, char *argv[])
                 printf("Client closed connection\n");
                 exit(EXIT_SUCCESS);
             }
-            // oldsize = strlen(msg) + 1;
-            // newsize = oldsize + strlen(buffer);
-            // msg = (char *)realloc(msg, newsize);
-            // strcat(msg, buffer);
-
-            printf("Message received: %s\n", msg);
-
+            // print method and header
+            for(int i=0; i<method_header_end; i++)
+                printf("%c", msg[i]);
+            
             // Parse the request
             // get method, path and version
             // create a copy of the message
-            printf("Message size: %d\n", msg_size);
             char *msg_copy = (char *)malloc(msg_size);
             for(int i=0; i<msg_size; i++)
                 msg_copy[i] = msg[i];
@@ -165,12 +161,10 @@ int main(int argc, char *argv[])
                 struct tm tm = *localtime(&t);
                 sprintf(date, "%02d/%02d/%02d", tm.tm_mday, tm.tm_mon+1, tm.tm_year+1900);
                 sprintf(timet, "%02d:%02d:%02d", tm.tm_hour, tm.tm_min, tm.tm_sec);
-                fprintf(fp, "Date:%s, Time:%s, IP:%s, Port:%d, Request:%s, File:%s\n", date, timet, inet_ntoa(cli_addr.sin_addr), ntohs(cli_addr.sin_port), method, path);
+                fprintf(fp, "Date:%s, Time:%s, IP:%s, Port:%d, Request:%s, URL:%s\n", date, timet, inet_ntoa(cli_addr.sin_addr), ntohs(cli_addr.sin_port), method, path);
                 fclose(fp);
+
                 // open the file
-                printf("Here\n");
-                printf("Path: %s\n", path);
-                
                 if (access(path, F_OK) == -1)
                 {
                     // file not found
@@ -180,7 +174,7 @@ int main(int argc, char *argv[])
                     close(newsockfd);
                     exit(EXIT_SUCCESS);
                 }
-                else if(access(path, R_OK)==-1)
+                else if(access(path, R_OK) == -1)
                 {
                     memset(buffer, 0, BUFF_MAX);
                     sprintf(buffer, "%s 403 Forbidden\r\n\r\n", version);
@@ -196,7 +190,6 @@ int main(int argc, char *argv[])
                     4.accept-language,
                     5.If-Modified-Since
                     */
-                    printf("Here2\n");
                     char *values[5];
                     // parse through headers to get values of the above headers
                     while (1)
@@ -242,15 +235,9 @@ int main(int argc, char *argv[])
                             values[4] = value;
                         }
                     }
-                    printf("Here3\n");
-                    for(int i=0;i<5;i++)
-                    {
-                        printf("%s\n",values[i]);
-                    }
+                    // check if host header is present else send 400
                     if(values[0]==NULL)
-                    {
                         send_400(newsockfd, version);
-                    }
                     // send the file only if the file has been modified since the date specified in the request
                     if (values[4] != NULL)
                     {
@@ -259,15 +246,11 @@ int main(int argc, char *argv[])
                         {   
                             struct tm *tm2 = gmtime(&file_stat.st_mtime);
                             time_t time2 = mktime(tm2);
-                            // time2 -= (5 * 3600 + 30 * 60);
-                            printf("File modified time: %s", ctime(&time2));
 
                             struct tm tm1;
                             strptime(values[4], "%a, %d %b %Y %H:%M:%S GMT", &tm1);
                             time_t time1 = mktime(&tm1);
-                            printf("Request time: %s", ctime(&time1));
 
-                            // printf("File modified time: %s\n", ctime(&file_stat.st_mtime));
                             if (difftime(time1, time2) >= 0)
                             {
                                 // The file has not been modified since the specified time
@@ -285,7 +268,6 @@ int main(int argc, char *argv[])
                             exit(EXIT_FAILURE);
                         }
                     }
-
                     // The file has been modified since the specified time
                     // send the file contents
                     memset(buffer, 0, BUFF_MAX);
@@ -298,7 +280,7 @@ int main(int argc, char *argv[])
                     now_tm->tm_mday += 3;
                     mktime(now_tm);
                     char expires[100];
-                    strftime(expires, 100, "%a, %d %b %Y %H:%M:%S %Z", now_tm);
+                    strftime(expires, sizeof(expires), "%a, %d %b %Y %H:%M:%S GMT", now_tm);
                     memset(buffer, 0, BUFF_MAX);
                     sprintf(buffer, "Expires: %s\r\n", expires);
                     send(newsockfd, buffer, strlen(buffer), 0);
@@ -342,6 +324,22 @@ int main(int argc, char *argv[])
                     memset(buffer, 0, BUFF_MAX);
                     sprintf(buffer, "Content-Type: %s\r\n", content_type);
                     send(newsockfd, buffer, strlen(buffer), 0);
+                    // 6. Last-Modified: set to the last modified time of the file
+                    struct stat file_stat;
+                    if (stat(path, &file_stat) == 0)
+                    {
+                        struct tm *tm = gmtime(&file_stat.st_mtime);
+                        char last_modified[100];
+                        strftime(last_modified, sizeof(last_modified), "%a, %d %b %Y %H:%M:%S GMT", tm);
+                        memset(buffer, 0, BUFF_MAX);
+                        sprintf(buffer, "Last-Modified: %s\r\n", last_modified);
+                        send(newsockfd, buffer, strlen(buffer), 0);
+                    }
+                    else
+                    {
+                        perror("stat");
+                        exit(EXIT_FAILURE);
+                    }
                     // put an empty line to indicate the end of the headers and start sending the file
                     memset(buffer, 0, BUFF_MAX);
                     sprintf(buffer, "\r\n");
@@ -350,26 +348,35 @@ int main(int argc, char *argv[])
                     FILE *fp = fopen(path, "r");
                     size_t nread;
                     memset(buffer, 0, BUFF_MAX);
-                    // printf("Here4\n");
                     while ((nread = fread(buffer, 1, BUFF_MAX, fp)) > 0)
                     {
                         send(newsockfd, buffer, nread, 0);
-                        // print n characters sent
-                        // printf("%.*s", (int)nread, buffer);
                         memset(buffer, 0, BUFF_MAX);
                     }
                     fclose(fp);
-                    // send null byte to indicate end of file
-                    // send(newsockfd, "\r\n", 2, 0);
                     // close the connection
                     close(newsockfd);
                     exit(EXIT_SUCCESS);
                 }
             }
             else if (strcmp(method, "PUT") == 0)
-            {
+            {   
+                // print to access log following details: <Date(ddmmyy)>:<Time(hhmmss)>:<Client IP>:<ClientPort>:<GET/PUT>:<URL>
+                FILE *fp = fopen(LOG_FILE, "a");
+                if(fp == NULL)
+                {
+                    perror("Error opening log file");
+                    exit(EXIT_FAILURE);
+                }
+                char *date = (char *)malloc(9);
+                char *timet = (char *)malloc(7);
+                time_t t = time(NULL);
+                struct tm tm = *localtime(&t);
+                sprintf(date, "%02d/%02d/%02d", tm.tm_mday, tm.tm_mon+1, tm.tm_year+1900);
+                sprintf(timet, "%02d:%02d:%02d", tm.tm_hour, tm.tm_min, tm.tm_sec);
+                fprintf(fp, "Date:%s, Time:%s, IP:%s, Port:%d, Request:%s, URL:%s\n", date, timet, inet_ntoa(cli_addr.sin_addr), ntohs(cli_addr.sin_port), method, path);
+                fclose(fp);
                 // PUT method
-                printf("PUT method\n");
 
                 // create the file
                 int fd = open(path, O_CREAT | O_WRONLY | O_TRUNC, 0666);
@@ -390,18 +397,15 @@ int main(int argc, char *argv[])
                 // printf("Msg copy: %s\n", msg_copy);
                 char *values[6];
                 int body_start = 0;
-                printf("msg_size: %d\n", msg_size);
                 for(int i=0; i<msg_size; i++)
                 {   
                     if(msg_copy[i] == '\r' && msg_copy[i+1] == '\n')
                     {   
-                        printf("i: %d\n", i);
                         body_start = i+2;
                         break;
                     }
                 }
                 int header_start = body_start;
-                printf("body_start: %d\n", body_start);
                 while (1)
                 {   
                     int flag = 0;
@@ -460,87 +464,20 @@ int main(int argc, char *argv[])
                     body_start++;
                 }
                 body_start += 4;
-                // {
-                //     char *header = strtok(NULL, "\r\n");
-                //     if (header == NULL)
-                //     {
-                //         break;
-                //     }
-                //     // get key and value without using strtok
-                //     char *key = header;
-                //     char *value = header;
-                //     while (*value != ':')
-                //     {
-                //         value++;
-                //     }
-                //     *value = '\0';
-                //     value++;
-
-                //     // remove leading spaces
-                //     while (value[0] == ' ' || value[0] == '\t')
-                //     {
-                //         value++;
-                //     }
-                //     if (strcmp(key, "Host") == 0)
-                //     {
-                //         values[0] = value;
-                //     }
-                //     else if (strcmp(key, "Connection") == 0)
-                //     {
-                //         values[1] = value;
-                //     }
-                //     else if (strcmp(key, "Date") == 0)
-                //     {
-                //         values[2] = value;
-                //     }
-                //     else if (strcmp(key, "Content-Length") == 0)
-                //     {
-                //         values[3] = value;
-                //     }
-                //     else if (strcmp(key, "Content-Type") == 0)
-                //     {
-                //         values[4] = value;
-                //     }
-                //     else if (strcmp(key, "Content-Language") == 0)
-                //     {
-                //         values[5] = value;
-                //     }
-                // }
-                for(int i=0; i<6; i++)
-                {
-                    printf("values(%d): %s\n", i, values[i]);
-                }
                 if(values[0]==NULL || values[1]==NULL || values[2]==NULL)
                     send_400(newsockfd, version);
-                printf("Host: %s\n", values[0]);
-                // for(int i=0; i<msg_size; i++)
-                // {
-                //     if(msg_copy[i]=='\r' && msg_copy[i+1]=='\n' && msg_copy[i+2]=='\r' && msg_copy[i+3]=='\n')
-                //     {
-                //         body_start = i+4;
-                //         break;
-                //     }
-                // }
-                printf("body_start: %d\n", body_start);
+
                 msg_copy+=body_start;
                 msg_size-=body_start;
-                int ret;
                 if(msg_size)
-                    ret = write(fd, msg_copy, msg_size);
-                printf("ret: %d\n", ret);
-                    // fwrite(msg_copy+body_start, 1, msg_size-body_start, fp);
+                    write(fd, msg_copy, msg_size);
                 int content_length = atoi(values[3]);
-                printf("content_length: %d\n", content_length);
                 int written = msg_size;
                 while (written != content_length)
                 {   
                     memset(buffer, 0, BUFF_MAX);
                     int nread = recv(newsockfd, buffer, BUFF_MAX, 0);
-                    // printf("nread: %d\n", nread);
-                    ret = write(fd, buffer, nread);
-                    if(ret!=nread)
-                        printf("write error\n");
-                    // fwrite(buffer, 1, nread, fp);
+                    write(fd, buffer, nread);
                     written += nread;
                 }
                 close(fd);
@@ -548,7 +485,6 @@ int main(int argc, char *argv[])
                 memset(buffer, 0, BUFF_MAX);
                 sprintf(buffer, "%s 200 OK\r\n\r\n", version);
                 send(newsockfd, buffer, strlen(buffer), 0);
-                printf("File created successfully\n");
                 close(newsockfd);
                 exit(EXIT_SUCCESS);
             }
