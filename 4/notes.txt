@@ -1,0 +1,6 @@
+For server:
+    1. Response message headers
+        a. Content-Type: text/html
+        b. Content-Length: var
+        c. Expires: var
+        

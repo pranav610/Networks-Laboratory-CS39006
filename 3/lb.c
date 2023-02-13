@@ -9,6 +9,7 @@
 #include <string.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/time.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <poll.h>
@@ -75,7 +76,7 @@ int main(int argc, char *argv[])
 
     // bind load balancer socket to address
     if (bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0) {
-        perror("Cannot bind\n");
+        perror("Cannot bind");
         exit(EXIT_FAILURE);
     }
 
@@ -89,16 +90,18 @@ int main(int argc, char *argv[])
 
     // setup load balancer to listen to client
     listen(sockfd, 5);
-    clock_t start = clock();
-    double dur = 0.0;
+    struct timeval start ;
+    int dur = 0;
     int T;
 
     while(1){
-        if(dur < TIMEOUT && dur > 0)
-            T = TIMEOUT - dur;
-        else 
+        if(dur < T && dur > 0)
+            T -= dur;
+        else if(dur >= T)
+            T = 10;
+        else
             T = TIMEOUT;
-        start = clock();
+        gettimeofday(&start, 0);
         ret = poll(fdset, sz, T);
 
         if(ret < 0)
@@ -179,8 +182,9 @@ int main(int argc, char *argv[])
 
         // ret > 0 means there is a request from client
         if(ret > 0){
-            dur = (clock() - start) / (double) CLOCKS_PER_SEC;
-            dur *= 1000;
+            struct timeval end;
+            gettimeofday(&end, 0);
+            dur = (end.tv_sec - start.tv_sec)*1000 + (end.tv_usec - start.tv_usec)/1000;
             if(fdset[0].revents == POLLIN){
                 clilen = sizeof(cli_addr);
                 newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
