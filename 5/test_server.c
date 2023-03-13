@@ -19,6 +19,8 @@ int main(int argc, char *argv[]){
         exit(EXIT_FAILURE);
     }
 
+    FILE* fp = fopen("server.log", "w");
+
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_addr.s_addr = INADDR_ANY;
     serv_addr.sin_port = htons(atoi(argv[1]));
@@ -38,19 +40,36 @@ int main(int argc, char *argv[]){
         perror("Accept error\n");
         exit(EXIT_FAILURE);
     }
-    printf("Connection accepted\n");
-    for(int i = 0; i<BUFF_MAX-1; i++){
+    fprintf(fp, "Connection accepted\n");
+    for(int i = 0; i<BUFF_MAX; i++){
         buffer[i] = 'a';
     }
-    my_send(newsockfd, buffer, BUFF_MAX, 0);
-    my_send(newsockfd, "Hello Hello", 12, 0);
-    my_send(newsockfd, "Hello Hello Hello", 18, 0);
-    int n = my_recv(newsockfd, buffer, BUFF_MAX, 0);
-    printf("%s\n", buffer);
-    n = my_recv(newsockfd, buffer, BUFF_MAX, 0);
-    printf("%s\n", buffer);
-    n = my_recv(newsockfd, buffer, BUFF_MAX, 0);
-    printf("%s\n", buffer);
+    // my_send(newsockfd, buffer, BUFF_MAX, 0);
+    // my_send(newsockfd, "Hello Hello", 12, 0);
+    // my_send(newsockfd, "Hello Hello Hello", 18, 0);
+    // int n = my_recv(newsockfd, buffer, BUFF_MAX, 0);
+    // fprintf(fp, "%s\n", buffer);
+    // n = my_recv(newsockfd, buffer, BUFF_MAX, 0);
+    // fprintf(fp, "%s\n", buffer);
+    // n = my_recv(newsockfd, buffer, BUFF_MAX, 0);
+    // fprintf(fp, "%s\n", buffer);
+    int count = 25;
+    while(count--){
+        my_send(newsockfd, buffer, BUFF_MAX, 0);
+    }
+    count = 25;
+    int recvLen;
+    while(count--){
+        memset(buffer, 0, BUFF_MAX);
+        recvLen = my_recv(newsockfd, buffer, BUFF_MAX, 0);
+        fprintf(fp, "recvLen: %d\n", recvLen);
+        fprintf(fp, "%d: ", 25-count);
+        for(int i = 0; i < recvLen; i++){
+            fprintf(fp, "%c", buffer[i]);
+        }
+        fprintf(fp, "\n");
+    }
+    fflush(fp);
     my_close(newsockfd);
     my_close(sockfd);
 

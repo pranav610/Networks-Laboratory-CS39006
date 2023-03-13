@@ -124,8 +124,8 @@ int my_close(int sockfd)
     if(sockfd != __oldsockfd)
         return close(sockfd);
     
-    pthread_kill(tid_s, SIGINT);
-    pthread_kill(tid_r, SIGINT);
+    pthread_kill(tid_s, SIGKILL);
+    pthread_kill(tid_r, SIGKILL);
     for(int i = 0; i < TABLE_MAX; i++)
     {
         free(Send_Message.table[i]);
@@ -191,14 +191,15 @@ void *S(void *arg)
 {
     int size;
     char* buff = (char*)malloc(sizeof(char) * MAX_MSG);
+    sleep(5);
     while(1)
     {   
         // printf("S waiting\n");
-        sleep(T);
         pthread_mutex_lock(&mutex_s);
             if(Send_Message.count == 0)
             {
                 pthread_mutex_unlock(&mutex_s);
+                sleep(5);
                 continue;
             }
             // printf("S obtained lock\n");

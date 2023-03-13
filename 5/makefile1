@@ -1,2 +1,0 @@
-test_server: test_server.o lib.o
-    gcc -Wall 

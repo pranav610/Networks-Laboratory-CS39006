@@ -12,5 +12,5 @@ clean:
 	rm mysocket.o test_server.o test_client.o
 
 distclean:
-	rm libmsocket.a mysocket.o test_server.o test_client.o test_server test_client
+	rm libmsocket.a mysocket.o test_server.o test_client.o test_server test_client client.log server.log
 
