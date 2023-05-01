@@ -2,13 +2,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define BUFF_MAX 5000
+#define BUFF_MAX 50
 
 int main(int argc, char *argv[]){
     int sockfd;
     struct sockaddr_in serv_addr;
 
-    FILE* fp = fopen("client.log", "w");
+    // FILE* fp = fopen("client.log", "w");
 
     char buff[BUFF_MAX];
     memset(buff, 0, BUFF_MAX);
@@ -16,6 +16,9 @@ int main(int argc, char *argv[]){
         printf("Error creating socket");
         exit(EXIT_FAILURE);
     }
+
+    int ret = my_recv(sockfd, buff, BUFF_MAX, 0);
+    printf("ret: %d\n", ret);
     
     serv_addr.sin_family = AF_INET;
     inet_aton("127.0.0.1", &serv_addr.sin_addr);
@@ -25,23 +28,30 @@ int main(int argc, char *argv[]){
         printf("Error connecting to server");
         exit(EXIT_FAILURE);
     }
-    fprintf(fp, "Connected to server\n");
+    printf("Connected to server\n");
+    // sleep(20);
+    ret = my_recv(sockfd, buff, BUFF_MAX, 0);
+    printf("ret: %d\n", ret);
+    printf("buff: %s\n", buff);
+    
 
+
+    /*
     int count = 25;
     int recv_len;
     while(count--)
     {   
         memset(buff, 0, BUFF_MAX);
         recv_len=my_recv(sockfd, buff, BUFF_MAX, 0);
-        fprintf(fp, "%d: ", 25-count);
+        printf("%d: ", 25-count);
         for(int i = 0; i < recv_len; i++){
-            fprintf(fp, "%c", buff[i]);
+            printf("%c", buff[i]);
         }
-        fprintf(fp, "\n");
+        printf("\n");
     }
     // recv_len=my_recv(sockfd, buff, 50, 0);
     // for(int i = 0; i < 50; i++){
-    //     fprintf(fp, "%c", buff[i]);
+    //     printf("%c", buff[i]);
     // }
     // printf("\n");
 
@@ -62,8 +72,14 @@ int main(int argc, char *argv[]){
     {   
         my_send(sockfd, buff, BUFF_MAX, 0);
     }
-    fflush(fp);
-    my_close(sockfd);
+    // fflush(fp);
+    */
+    sleep(20);
+
+    ret = my_close(sockfd);
+    printf("ret: %d\n", ret);
+    
 
     return 0;
+    
 }

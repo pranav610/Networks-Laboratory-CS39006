@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define BUFF_MAX 5000
+#define BUFF_MAX 50
 
 int main(int argc, char *argv[]){
    	int			sockfd, newsockfd ; // Socket descriptors
@@ -19,7 +19,7 @@ int main(int argc, char *argv[]){
         exit(EXIT_FAILURE);
     }
 
-    FILE* fp = fopen("server.log", "w");
+    // FILE* fp = fopen("server.log", "w");
 
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_addr.s_addr = INADDR_ANY;
@@ -35,12 +35,15 @@ int main(int argc, char *argv[]){
 
     clilen = sizeof(cli_addr);
     newsockfd = my_accept(sockfd, (struct sockaddr *) &cli_addr, &clilen) ;
-
+    printf("Connection accepted\n");
+    int ret = my_send(newsockfd, "hello", 6, 0);
+    printf("ret: %d\n", ret);
+    /*
     if (newsockfd < 0) {
         perror("Accept error\n");
         exit(EXIT_FAILURE);
     }
-    fprintf(fp, "Connection accepted\n");
+    printf("Connection accepted\n");
     for(int i = 0; i<BUFF_MAX; i++){
         buffer[i] = 'a';
     }
@@ -61,16 +64,26 @@ int main(int argc, char *argv[]){
     int recvLen;
     while(count--){
         memset(buffer, 0, BUFF_MAX);
-        recvLen = my_recv(newsockfd, buffer, BUFF_MAX, 0);
-        fprintf(fp, "recvLen: %d\n", recvLen);
-        fprintf(fp, "%d: ", 25-count);
+        recvLen = my_recv(newsockfd, buffer, 25, 0);
+        printf("recvLen: %d\n", recvLen);
+        printf("%d: ", 25-count);
         for(int i = 0; i < recvLen; i++){
-            fprintf(fp, "%c", buffer[i]);
+            printf("%c", buffer[i]);
         }
-        fprintf(fp, "\n");
+        printf("\n");
     }
-    fflush(fp);
-    my_close(newsockfd);
-    my_close(sockfd);
+    // fflush(fp);
+    */
+    printf("Closing connection\n");
+    printf("%d\n", newsockfd);
+    ret = my_close(newsockfd);
+    printf("ret: %d\n", ret);
+    printf("Closing socket\n");
+    printf("%d\n", sockfd);
+    ret = my_close(sockfd);
+    printf("ret: %d\n", ret);
+    
+
+
 
 }
